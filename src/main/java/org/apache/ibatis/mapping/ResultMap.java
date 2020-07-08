@@ -70,15 +70,22 @@ public class ResultMap {
       if (resultMap.id == null) {
         throw new IllegalArgumentException("ResultMaps must have an id");
       }
+      // 用于存储 <id>、 <result>、 <idArg>、 <arg> 节点 column 属性
       resultMap.mappedColumns = new HashSet<String>();
+      // 用于存储 <id> 和 <idArg> 节点对应的 ResultMapping 对象
       resultMap.idResultMappings = new ArrayList<ResultMapping>();
+      // 用于存储 <idArgs> 和 <arg> 节点对应的 ResultMapping 对象
       resultMap.constructorResultMappings = new ArrayList<ResultMapping>();
+      // 用于存储 <id> 和 <result> 节点对应的 ResultMapping 对象
       resultMap.propertyResultMappings = new ArrayList<ResultMapping>();
       for (ResultMapping resultMapping : resultMap.resultMappings) {
+        // 检测 <association> 或 <collection> 节点
+        // 是否包含 select 和 resultMap 属性
         resultMap.hasNestedQueries = resultMap.hasNestedQueries || resultMapping.getNestedQueryId() != null;
         resultMap.hasNestedResultMaps = resultMap.hasNestedResultMaps || (resultMapping.getNestedResultMapId() != null && resultMapping.getResultSet() == null);
         final String column = resultMapping.getColumn();
         if (column != null) {
+          // 将 column 转换成大写，并添加到 mappedColumns 集合中
           resultMap.mappedColumns.add(column.toUpperCase(Locale.ENGLISH));
         } else if (resultMapping.isCompositeResult()) {
           for (ResultMapping compositeResultMapping : resultMapping.getComposites()) {
@@ -88,12 +95,16 @@ public class ResultMap {
             }
           }
         }
+        // 检测当前 resultMapping 是否包含 CONSTRUCTOR 标志
         if (resultMapping.getFlags().contains(ResultFlag.CONSTRUCTOR)) {
+          // 添加 resultMapping 到 constructorResultMappings 中
           resultMap.constructorResultMappings.add(resultMapping);
         } else {
+          // 添加 resultMapping 到 propertyResultMappings 中
           resultMap.propertyResultMappings.add(resultMapping);
         }
         if (resultMapping.getFlags().contains(ResultFlag.ID)) {
+          // 添加 resultMapping 到 idResultMappings 中
           resultMap.idResultMappings.add(resultMapping);
         }
       }
@@ -101,6 +112,7 @@ public class ResultMap {
         resultMap.idResultMappings.addAll(resultMap.resultMappings);
       }
       // lock down collections
+      // 将以下这些集合变为不可修改集合
       resultMap.resultMappings = Collections.unmodifiableList(resultMap.resultMappings);
       resultMap.idResultMappings = Collections.unmodifiableList(resultMap.idResultMappings);
       resultMap.constructorResultMappings = Collections.unmodifiableList(resultMap.constructorResultMappings);

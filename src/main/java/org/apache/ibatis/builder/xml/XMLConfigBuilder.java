@@ -442,25 +442,34 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   private void mapperElement(XNode parent) throws Exception {
+
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
         if ("package".equals(child.getName())) {
+          // 获取 <package> 节点中的 name 属性
           String mapperPackage = child.getStringAttribute("name");
+          // 从指定包中查找 mapper 接口，并根据 mapper 接口解析映射配置
           configuration.addMappers(mapperPackage);
         } else {
+          // 获取 resource/url/class 等属性
           String resource = child.getStringAttribute("resource");
           String url = child.getStringAttribute("url");
           String mapperClass = child.getStringAttribute("class");
+          // resource 不为空，且其他两者为空，则从指定路径中加载配置
           if (resource != null && url == null && mapperClass == null) {
             ErrorContext.instance().resource(resource);
             InputStream inputStream = Resources.getResourceAsStream(resource);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
+            // 解析映射文件
             mapperParser.parse();
+          // url 不为空，且其他两者为空，则通过 url 加载配置
           } else if (resource == null && url != null && mapperClass == null) {
             ErrorContext.instance().resource(url);
             InputStream inputStream = Resources.getUrlAsStream(url);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
+            // 解析映射文件
             mapperParser.parse();
+          // mapperClass 不为空，且其他两者为空，则通过 mapperClass 解析映射配置
           } else if (resource == null && url == null && mapperClass != null) {
             Class<?> mapperInterface = Resources.classForName(mapperClass);
             configuration.addMapper(mapperInterface);

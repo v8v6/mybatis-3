@@ -44,6 +44,7 @@ public class ResultMapResolver {
   }
 
   public ResultMap resolve() {
+    // 构 建 ResultMap 实 例 的 任 务 委 托 给 了 MapperBuilderAssistant 的addResultMap
     return assistant.addResultMap(this.id, this.type, this.extend, this.discriminator, this.resultMappings, this.autoMapping);
   }
 

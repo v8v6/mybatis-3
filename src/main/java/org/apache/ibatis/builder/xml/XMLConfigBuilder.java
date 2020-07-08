@@ -89,30 +89,47 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   public Configuration parse() {
+    // 解析过，直接抛错
     if (parsed) {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
     parsed = true;
+    // 解析配置
+    // 通过 xpath 选中这个节点，并传递给 parseConfiguration 方法
     parseConfiguration(parser.evalNode("/configuration"));
     return configuration;
   }
 
   private void parseConfiguration(XNode root) {
     try {
+      // issue #117 read properties first
+      // 解析 properties 配置
       //issue #117 read properties first
       propertiesElement(root.evalNode("properties"));
+      // 解析 settings 配置，并将其转换为 Properties 对象
       Properties settings = settingsAsProperties(root.evalNode("settings"));
+      // 加载 vfs
       loadCustomVfs(settings);
+      // 解析 typeAliases 配置
       typeAliasesElement(root.evalNode("typeAliases"));
+      // 解析 plugins 配置
       pluginElement(root.evalNode("plugins"));
+      // 解析 objectFactory 配置
       objectFactoryElement(root.evalNode("objectFactory"));
+      // 解析 objectWrapperFactory 配置
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
+      // 解析 reflectorFactory 配置
       reflectionFactoryElement(root.evalNode("reflectionFactory"));
+      // settings 中的信息设置到 Configuration 对象中
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
+      // 解析 environments 配置
       environmentsElement(root.evalNode("environments"));
+      // 解析 databaseIdProvider，获取并设置 databaseId 到 Configuration 对象
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
+      // 解析 typeHandlers 配置
       typeHandlerElement(root.evalNode("typeHandlers"));
+      // 解析 mappers 配置
       mapperElement(root.evalNode("mappers"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
@@ -120,13 +137,22 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   private Properties settingsAsProperties(XNode context) {
+    // <settings>
+    //  <setting name="cacheEnabled" value="true"/>
+    //  <setting name="lazyLoadingEnabled" value="true"/>
+    //  <setting name="autoMappingBehavior" value="PARTIAL"/>
+    // </settings>
     if (context == null) {
       return new Properties();
     }
+    // 获取 settings 子节点中的内容
     Properties props = context.getChildrenAsProperties();
     // Check that all settings are known to the configuration class
+    // 创建 Configuration 类的“元信息”对象
+    // 解析目标类的一些元信息，比如类的成员变量， getter/setter 方法等
     MetaClass metaConfig = MetaClass.forClass(Configuration.class, localReflectorFactory);
     for (Object key : props.keySet()) {
+      // 检测 Configuration 中是否存在相关属性，不存在则抛出异常
       if (!metaConfig.hasSetter(String.valueOf(key))) {
         throw new BuilderException("The setting " + key + " is not known.  Make sure you spelled it correctly (case sensitive).");
       }
@@ -147,17 +173,31 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   private void typeAliasesElement(XNode parent) {
+    // <typeAliases>
+    //   <package name="xyz.coolblog.chapter2.model1"/>
+    //  <package name="xyz.coolblog.chapter2.model2"/>
+    // </typeAliases>
+
+    // <typeAliases>
+    //  <typeAlias alias="article" type="xyz.coolblog.chapter2.model.Article" />
+    //  <typeAlias alias="author" type="xyz.coolblog.chapter2.model.Author" />
+    // </typeAliases>
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        // 指定的包中解析别名和类型的映射
         if ("package".equals(child.getName())) {
           String typeAliasPackage = child.getStringAttribute("name");
           configuration.getTypeAliasRegistry().registerAliases(typeAliasPackage);
         } else {
+          // 从 typeAlias 节点中解析别名和类型的映射
           String alias = child.getStringAttribute("alias");
           String type = child.getStringAttribute("type");
           try {
+            // 加载 type 对应的类型
             Class<?> clazz = Resources.classForName(type);
+            // 没有配置alias， 使用Alias注解没有，没有使用的话，使用class 的简单类名 type.getSimpleName()
             if (alias == null) {
+              // 注册别名到类型的映射
               typeAliasRegistry.registerAlias(clazz);
             } else {
               typeAliasRegistry.registerAlias(alias, clazz);
@@ -171,12 +211,22 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   private void pluginElement(XNode parent) throws Exception {
+    // <plugins>
+    //  <plugin interceptor="xyz.coolblog.mybatis.ExamplePlugin">
+    //    <property name="key" value="value"/>
+    //  </plugin>
+    // </plugins>
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        // 获取plugin节点的interceptor属性配置
         String interceptor = child.getStringAttribute("interceptor");
+        // 获取配置信息
         Properties properties = child.getChildrenAsProperties();
+        // 解析拦截器的类型，并创建拦截器
         Interceptor interceptorInstance = (Interceptor) resolveClass(interceptor).newInstance();
+        // 设置属性
         interceptorInstance.setProperties(properties);
+        // 添加拦截器到 Configuration 中
         configuration.addInterceptor(interceptorInstance);
       }
     }
@@ -208,17 +258,28 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+
   private void propertiesElement(XNode context) throws Exception {
+    // <properties resource="jdbc.properties">
+    //   <property name="jdbc.username" value="test"/>
+    //   <property name="hello" value="world"/>
+    // </properties>
     if (context != null) {
+      // 解析 propertis 的子节点，并将这些节点内容转换为属性对象 Properties
       Properties defaults = context.getChildrenAsProperties();
+      // 获取 propertis 节点中的 resource 和 url 属性值
       String resource = context.getStringAttribute("resource");
       String url = context.getStringAttribute("url");
+      // 两者都不用空，则抛出异常
       if (resource != null && url != null) {
         throw new BuilderException("The properties element cannot specify both a URL and a resource based property file reference.  Please specify one or the other.");
       }
+      // 这里会出现同名属性覆盖
       if (resource != null) {
+        // 从文件系统中加载并解析属性文件
         defaults.putAll(Resources.getResourceAsProperties(resource));
       } else if (url != null) {
+        // 通过 url 加载并解析属性文件
         defaults.putAll(Resources.getUrlAsProperties(url));
       }
       Properties vars = configuration.getVariables();
@@ -226,12 +287,15 @@ public class XMLConfigBuilder extends BaseBuilder {
         defaults.putAll(vars);
       }
       parser.setVariables(defaults);
+      // 将属性值设置到 configuration 中
       configuration.setVariables(defaults);
     }
   }
 
   private void settingsElement(Properties props) throws Exception {
+    // 设置 autoMappingBehavior 属性，默认值为 PARTIAL
     configuration.setAutoMappingBehavior(AutoMappingBehavior.valueOf(props.getProperty("autoMappingBehavior", "PARTIAL")));
+    // 设置 cacheEnabled 属性，默认值为 true
     configuration.setCacheEnabled(booleanValueOf(props.getProperty("cacheEnabled"), true));
     configuration.setProxyFactory((ProxyFactory) createInstance(props.getProperty("proxyFactory")));
     configuration.setLazyLoadingEnabled(booleanValueOf(props.getProperty("lazyLoadingEnabled"), false));
@@ -239,9 +303,11 @@ public class XMLConfigBuilder extends BaseBuilder {
     configuration.setMultipleResultSetsEnabled(booleanValueOf(props.getProperty("multipleResultSetsEnabled"), true));
     configuration.setUseColumnLabel(booleanValueOf(props.getProperty("useColumnLabel"), true));
     configuration.setUseGeneratedKeys(booleanValueOf(props.getProperty("useGeneratedKeys"), false));
+    // 设置 执行器类型 属性，默认值为 SIMPLE
     configuration.setDefaultExecutorType(ExecutorType.valueOf(props.getProperty("defaultExecutorType", "SIMPLE")));
     configuration.setDefaultStatementTimeout(integerValueOf(props.getProperty("defaultStatementTimeout"), null));
     configuration.setDefaultFetchSize(integerValueOf(props.getProperty("defaultFetchSize"), null));
+    // 设置camel命名法 属性 默认 false
     configuration.setMapUnderscoreToCamelCase(booleanValueOf(props.getProperty("mapUnderscoreToCamelCase"), false));
     configuration.setSafeRowBoundsEnabled(booleanValueOf(props.getProperty("safeRowBoundsEnabled"), false));
     configuration.setLocalCacheScope(LocalCacheScope.valueOf(props.getProperty("localCacheScope", "SESSION")));
@@ -256,16 +322,35 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   private void environmentsElement(XNode context) throws Exception {
+    // <environments default="development">
+    //  <environment id="development">
+    //    <transactionManager type="JDBC"/>
+    //    <dataSource type="POOLED">
+    //      <property name="driver" value="${jdbc.driver}"/>
+    //      <property name="url" value="${jdbc.url}"/>
+    //      <property name="username" value="${jdbc.username}"/>
+    //      <property name="password" value="${jdbc.password}"/>
+    //    </dataSource>
+    //  </environment>
+    // </environments>
     if (context != null) {
       if (environment == null) {
+        // 获取 default 属性
         environment = context.getStringAttribute("default");
       }
       for (XNode child : context.getChildren()) {
+        // 获取 id 属性
         String id = child.getStringAttribute("id");
+        // 检测当前 environment 节点的 id 与其父节点 environments 的属性 default 内容是否一致，
+        // 一致则返回 true，否则返回 false
         if (isSpecifiedEnvironment(id)) {
+          // 解析 transactionManager 节点
           TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
+          // 解析 dataSource 节点
           DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
+          // 创建 DataSource 对象
           DataSource dataSource = dsFactory.getDataSource();
+          // 构建 Environment 对象，并设置到 configuration
           Environment.Builder environmentBuilder = new Environment.Builder(id)
               .transactionFactory(txFactory)
               .dataSource(dataSource);
@@ -317,18 +402,31 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   private void typeHandlerElement(XNode parent) throws Exception {
+    // 使用自动扫描的方式注册类型处理器时，应使用@MappedTypes 和@MappedJdbcTypes注解配置 javaType 和 jdbcType
+    // <!-- 自动扫描 -->
+    //<typeHandlers>
+    //  <package name="xyz.coolblog.handlers"/>
+    //</typeHandlers>
+    //<!-- 手动配置 -->
+    //<typeHandlers>
+    //  <typeHandler jdbcType="TINYINT" javaType="xyz.coolblog.constant.ArticleTypeEnum"
+    //  handler="xyz.coolblog.mybatis.ArticleTypeHandler"/>
+    //</typeHandlers>
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        // 从指定的包中注册 TypeHandler
         if ("package".equals(child.getName())) {
           String typeHandlerPackage = child.getStringAttribute("name");
           typeHandlerRegistry.register(typeHandlerPackage);
-        } else {
+        } else { // 从 typeHandler 节点中解析别名到类型的映射
           String javaTypeName = child.getStringAttribute("javaType");
           String jdbcTypeName = child.getStringAttribute("jdbcType");
           String handlerTypeName = child.getStringAttribute("handler");
+          // 解析上面获取到的属性值
           Class<?> javaTypeClass = resolveClass(javaTypeName);
           JdbcType jdbcType = resolveJdbcType(jdbcTypeName);
           Class<?> typeHandlerClass = resolveClass(handlerTypeName);
+          // 根据 javaTypeClass 和 jdbcType 值的情况进行不同的注册策略
           if (javaTypeClass != null) {
             if (jdbcType == null) {
               typeHandlerRegistry.register(javaTypeClass, typeHandlerClass);

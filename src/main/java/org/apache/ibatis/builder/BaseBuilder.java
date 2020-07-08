@@ -33,6 +33,7 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
  */
 public abstract class BaseBuilder {
   protected final Configuration configuration;
+  /** TypeAliasRegistry 的用途就是将别名和类型进行映射*/
   protected final TypeAliasRegistry typeAliasRegistry;
   protected final TypeHandlerRegistry typeHandlerRegistry;
 
@@ -113,6 +114,7 @@ public abstract class BaseBuilder {
       return null;
     }
     try {
+      // 通过别名解析
       return resolveAlias(alias);
     } catch (Exception e) {
       throw new BuilderException("Error resolving class. Cause: " + e, e);

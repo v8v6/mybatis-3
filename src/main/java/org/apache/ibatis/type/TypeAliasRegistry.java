@@ -40,6 +40,7 @@ public class TypeAliasRegistry {
   private final Map<String, Class<?>> TYPE_ALIASES = new HashMap<String, Class<?>>();
 
   public TypeAliasRegistry() {
+    // 注册默认的别名
     registerAlias("string", String.class);
 
     registerAlias("byte", Byte.class);
@@ -122,17 +123,24 @@ public class TypeAliasRegistry {
   }
 
   public void registerAliases(String packageName){
+    // 调用重载方法注册别名
     registerAliases(packageName, Object.class);
   }
 
   public void registerAliases(String packageName, Class<?> superType){
     ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<Class<?>>();
+    // 查找某个包下的父类为 superType 的类。从调用栈来看，这里的
+    // superType = Object.class，所以 ResolverUtil 将查找所有的类。
+    // 查找完成后，查找结果将会被缓存到内部集合中。
     resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
+    // 获取查找结果
     Set<Class<? extends Class<?>>> typeSet = resolverUtil.getClasses();
     for(Class<?> type : typeSet){
       // Ignore inner classes and interfaces (including package-info.java)
       // Skip also inner classes. See issue #6
+      // 忽略匿名类，接口，内部类
       if (!type.isAnonymousClass() && !type.isInterface() && !type.isMemberClass()) {
+        // 为类型注册别名
         registerAlias(type);
       }
     }
@@ -142,6 +150,7 @@ public class TypeAliasRegistry {
     String alias = type.getSimpleName();
     Alias aliasAnnotation = type.getAnnotation(Alias.class);
     if (aliasAnnotation != null) {
+      // 从注解中取出别名
       alias = aliasAnnotation.value();
     } 
     registerAlias(alias, type);
@@ -152,10 +161,14 @@ public class TypeAliasRegistry {
       throw new TypeException("The parameter alias cannot be null");
     }
     // issue #748
+    // 将别名转成小写
     String key = alias.toLowerCase(Locale.ENGLISH);
+    // 如果 TYPE_ALIASES 中存在了某个类型映射，这里判断当前类型与映射中的类型
+    // 是否一致， 不一致则抛出异常，不允许一个别名对应两种类型
     if (TYPE_ALIASES.containsKey(key) && TYPE_ALIASES.get(key) != null && !TYPE_ALIASES.get(key).equals(value)) {
       throw new TypeException("The alias '" + alias + "' is already mapped to the value '" + TYPE_ALIASES.get(key).getName() + "'.");
     }
+    // 缓存别名到类型映射
     TYPE_ALIASES.put(key, value);
   }
 

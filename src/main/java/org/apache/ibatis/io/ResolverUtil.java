@@ -214,6 +214,13 @@ public class ResolverUtil<T> {
    *        classes, e.g. {@code net.sourceforge.stripes}
    */
   public ResolverUtil<T> find(Test test, String packageName) {
+    /**
+     * 1. 通过 VFS（虚拟文件系统）获取指定包下的所有文件的路径名，
+     * 2. 比如 xyz/coolblog/model/Article.class
+     * 3. 筛选以.class 结尾的文件名
+     * 4. 将路径名转成全限定的类名，通过类加载器加载类名
+     * 5. 对类型进行匹配，若符合匹配规则，则将其放入内部集合中
+     */
     String path = getPackagePath(packageName);
 
     try {

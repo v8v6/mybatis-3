@@ -319,12 +319,15 @@ public class MapperBuilderAssistant extends BaseBuilder {
         .useCache(valueOrDefault(useCache, isSelect))
         .cache(currentCache);
 
+    // 获取或创建 ParameterMap
     ParameterMap statementParameterMap = getStatementParameterMap(parameterMap, parameterType, id);
     if (statementParameterMap != null) {
       statementBuilder.parameterMap(statementParameterMap);
     }
 
+    // 构建 MappedStatement
     MappedStatement statement = statementBuilder.build();
+    // 添加 MappedStatement 到 configuration 的 mappedStatements 集合中
     configuration.addMappedStatement(statement);
     return statement;
   }

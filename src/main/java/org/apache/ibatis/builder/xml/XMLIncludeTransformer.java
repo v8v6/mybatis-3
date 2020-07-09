@@ -43,6 +43,7 @@ public class XMLIncludeTransformer {
     Properties variablesContext = new Properties();
     Properties configurationVariables = configuration.getVariables();
     if (configurationVariables != null) {
+      // 将 configurationVariables 中的数据添加到 variablesContext 中
       variablesContext.putAll(configurationVariables);
     }
     applyIncludes(source, variablesContext);

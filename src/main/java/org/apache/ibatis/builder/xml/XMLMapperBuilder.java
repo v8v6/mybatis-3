@@ -139,6 +139,7 @@ public class XMLMapperBuilder extends BaseBuilder {
 
   private void buildStatementFromContext(List<XNode> list) {
     if (configuration.getDatabaseId() != null) {
+      // 调用重载方法构建 Statement
       buildStatementFromContext(list, configuration.getDatabaseId());
     }
     buildStatementFromContext(list, null);
@@ -146,8 +147,10 @@ public class XMLMapperBuilder extends BaseBuilder {
 
   private void buildStatementFromContext(List<XNode> list, String requiredDatabaseId) {
     for (XNode context : list) {
+      // 创建 Statement 建造类
       final XMLStatementBuilder statementParser = new XMLStatementBuilder(configuration, builderAssistant, context, requiredDatabaseId);
       try {
+        // 解析 Statement 节点，并将解析结果存储到configuration 的 mappedStatements 集合中
         statementParser.parseStatementNode();
       } catch (IncompleteElementException e) {
         configuration.addIncompleteStatement(statementParser);
@@ -378,7 +381,9 @@ public class XMLMapperBuilder extends BaseBuilder {
   }
 
   private void sqlElement(List<XNode> list) throws Exception {
+    // 如果databaseId不为空的话，会调用两次sqlElement
     if (configuration.getDatabaseId() != null) {
+      // 调用 sqlElement 解析 <sql> 节点
       sqlElement(list, configuration.getDatabaseId());
     }
     sqlElement(list, null);
@@ -386,10 +391,14 @@ public class XMLMapperBuilder extends BaseBuilder {
 
   private void sqlElement(List<XNode> list, String requiredDatabaseId) throws Exception {
     for (XNode context : list) {
+      // 获取 id 和 databaseId 属性
       String databaseId = context.getStringAttribute("databaseId");
       String id = context.getStringAttribute("id");
+      // id = currentNamespace + "." + id
       id = builderAssistant.applyCurrentNamespace(id, false);
+      // 检测当前 databaseId 和 requiredDatabaseId 是否一致
       if (databaseIdMatchesCurrent(id, databaseId, requiredDatabaseId)) {
+        // 将 <id, XNode> 键值对缓存到 sqlFragments 中
         sqlFragments.put(id, context);
       }
     }
@@ -397,14 +406,17 @@ public class XMLMapperBuilder extends BaseBuilder {
   
   private boolean databaseIdMatchesCurrent(String id, String databaseId, String requiredDatabaseId) {
     if (requiredDatabaseId != null) {
+      // 当前 databaseId 和目标 requiredDatabaseId 不一致时，返回 false
       if (!requiredDatabaseId.equals(databaseId)) {
         return false;
       }
     } else {
+      // 如果目标 requiredDatabaseId 为空，但当前 databaseId 不为空。两者不一致，返回 false
       if (databaseId != null) {
         return false;
       }
       // skip this fragment if there is a previous one with a not null databaseId
+      // 如果当前 <sql> 节点的 id 与之前的 <sql> 节点重复，且先前节点databaseId 不为空。则忽略当前节点，并返回 false
       if (this.sqlFragments.containsKey(id)) {
         XNode context = this.sqlFragments.get(id);
         if (context.getStringAttribute("databaseId") != null) {

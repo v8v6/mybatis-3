@@ -1,11 +1,11 @@
-/**
- *    Copyright 2009-2020 the original author or authors.
+/*
+ *    Copyright 2009-2023 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
  *    You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  *    Unless required by applicable law or agreed to in writing, software
  *    distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.apache.ibatis.reflection.ExceptionUtil;
 import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.util.MapUtil;
 
 /**
  * @author Clinton Begin
@@ -81,9 +82,8 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     try {
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, args);
-      } else {
-        return cachedInvoker(method).invoke(proxy, method, args, sqlSession);
       }
+      return cachedInvoker(method).invoke(proxy, method, args, sqlSession);
     } catch (Throwable t) {
       throw ExceptionUtil.unwrapThrowable(t);
     }
@@ -91,28 +91,18 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
 
   private MapperMethodInvoker cachedInvoker(Method method) throws Throwable {
     try {
-      // A workaround for https://bugs.openjdk.java.net/browse/JDK-8161372
-      // It should be removed once the fix is backported to Java 8 or
-      // MyBatis drops Java 8 support. See gh-1929
-      MapperMethodInvoker invoker = methodCache.get(method);
-      if (invoker != null) {
-        return invoker;
-      }
-
-      return methodCache.computeIfAbsent(method, m -> {
-        if (m.isDefault()) {
-          try {
-            if (privateLookupInMethod == null) {
-              return new DefaultMethodInvoker(getMethodHandleJava8(method));
-            } else {
-              return new DefaultMethodInvoker(getMethodHandleJava9(method));
-            }
-          } catch (IllegalAccessException | InstantiationException | InvocationTargetException
-              | NoSuchMethodException e) {
-            throw new RuntimeException(e);
-          }
-        } else {
+      return MapUtil.computeIfAbsent(methodCache, method, m -> {
+        if (!m.isDefault()) {
           return new PlainMethodInvoker(new MapperMethod(mapperInterface, method, sqlSession.getConfiguration()));
+        }
+        try {
+          if (privateLookupInMethod == null) {
+            return new DefaultMethodInvoker(getMethodHandleJava8(method));
+          }
+          return new DefaultMethodInvoker(getMethodHandleJava9(method));
+        } catch (IllegalAccessException | InstantiationException | InvocationTargetException
+            | NoSuchMethodException e) {
+          throw new RuntimeException(e);
         }
       });
     } catch (RuntimeException re) {
@@ -143,7 +133,6 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     private final MapperMethod mapperMethod;
 
     public PlainMethodInvoker(MapperMethod mapperMethod) {
-      super();
       this.mapperMethod = mapperMethod;
     }
 
@@ -157,7 +146,6 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     private final MethodHandle methodHandle;
 
     public DefaultMethodInvoker(MethodHandle methodHandle) {
-      super();
       this.methodHandle = methodHandle;
     }
 

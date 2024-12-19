@@ -1,11 +1,11 @@
-/**
- *    Copyright 2009-2020 the original author or authors.
+/*
+ *    Copyright 2009-2023 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
  *    You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  *    Unless required by applicable law or agreed to in writing, software
  *    distributed under the License is distributed on an "AS IS" BASIS,
@@ -59,7 +59,7 @@ public class XMLIncludeTransformer {
    *          Current context for static variables with values
    */
   private void applyIncludes(Node source, final Properties variablesContext, boolean included) {
-    if (source.getNodeName().equals("include")) {
+    if ("include".equals(source.getNodeName())) {
       Node toInclude = findSqlFragment(getStringAttribute(source, "refid"), variablesContext);
       Properties toIncludeContext = getVariablesContext(source, variablesContext);
       applyIncludes(toInclude, toIncludeContext, true);
@@ -113,6 +113,7 @@ public class XMLIncludeTransformer {
    *          Include node instance
    * @param inheritedVariablesContext
    *          Current context used for replace variables in new variables values
+   *
    * @return variables context from include instance (no inherited values)
    */
   private Properties getVariablesContext(Node node, Properties inheritedVariablesContext) {
@@ -134,11 +135,10 @@ public class XMLIncludeTransformer {
     }
     if (declaredProperties == null) {
       return inheritedVariablesContext;
-    } else {
-      Properties newProperties = new Properties();
-      newProperties.putAll(inheritedVariablesContext);
-      newProperties.putAll(declaredProperties);
-      return newProperties;
     }
+    Properties newProperties = new Properties();
+    newProperties.putAll(inheritedVariablesContext);
+    newProperties.putAll(declaredProperties);
+    return newProperties;
   }
 }

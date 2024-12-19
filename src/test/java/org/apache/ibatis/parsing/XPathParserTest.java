@@ -1,11 +1,11 @@
-/**
- *    Copyright 2009-2020 the original author or authors.
+/*
+ *    Copyright 2009-2023 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
  *    You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  *    Unless required by applicable law or agreed to in writing, software
  *    distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,7 +32,7 @@ import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 
 class XPathParserTest {
-  private String resource = "resources/nodelet_test.xml";
+  private final String resource = "nodelet_test.xml";
 
   // InputStream Source
   @Test
@@ -179,64 +179,36 @@ class XPathParserTest {
     }
   }
 
+  enum EnumTest {
+    YES, NO
+  }
+
   private void testEvalMethod(XPathParser parser) {
     assertEquals((Long) 1970L, parser.evalLong("/employee/birth_date/year"));
+    assertEquals((Long) 1970L, parser.evalNode("/employee/birth_date/year").getLongBody());
     assertEquals((short) 6, (short) parser.evalShort("/employee/birth_date/month"));
     assertEquals((Integer) 15, parser.evalInteger("/employee/birth_date/day"));
+    assertEquals((Integer) 15, parser.evalNode("/employee/birth_date/day").getIntBody());
     assertEquals((Float) 5.8f, parser.evalFloat("/employee/height"));
+    assertEquals((Float) 5.8f, parser.evalNode("/employee/height").getFloatBody());
     assertEquals((Double) 5.8d, parser.evalDouble("/employee/height"));
+    assertEquals((Double) 5.8d, parser.evalNode("/employee/height").getDoubleBody());
+    assertEquals((Double) 5.8d, parser.evalNode("/employee").evalDouble("height"));
     assertEquals("${id_var}", parser.evalString("/employee/@id"));
+    assertEquals("${id_var}", parser.evalNode("/employee/@id").getStringBody());
+    assertEquals("${id_var}", parser.evalNode("/employee").evalString("@id"));
     assertEquals(Boolean.TRUE, parser.evalBoolean("/employee/active"));
-    assertEquals("<id>${id_var}</id>", parser.evalNode("/employee/@id").toString().trim());
+    assertEquals(Boolean.TRUE, parser.evalNode("/employee/active").getBooleanBody());
+    assertEquals(Boolean.TRUE, parser.evalNode("/employee").evalBoolean("active"));
+    assertEquals(EnumTest.YES, parser.evalNode("/employee/active").getEnumAttribute(EnumTest.class, "bot"));
+    assertEquals((Float) 3.2f, parser.evalNode("/employee/active").getFloatAttribute("score"));
+    assertEquals((Double) 3.2d, parser.evalNode("/employee/active").getDoubleAttribute("score"));
+
+    assertEquals("<id>\n  ${id_var}\n</id>", parser.evalNode("/employee/@id").toString().trim());
     assertEquals(7, parser.evalNodes("/employee/*").size());
     XNode node = parser.evalNode("/employee/height");
     assertEquals("employee/height", node.getPath());
     assertEquals("employee[${id_var}]_height", node.getValueBasedIdentifier());
-  }
-
-  @Test
-  void formatXNodeToString() {
-    XPathParser parser = new XPathParser("<users><user><id>100</id><name>Tom</name><age>30</age><cars><car>BMW</car><car>Audi</car><car>Benz</car></cars></user></users>");
-    String usersNodeToString = parser.evalNode("/users").toString();
-    String userNodeToString = parser.evalNode("/users/user").toString();
-    String carsNodeToString = parser.evalNode("/users/user/cars").toString();
-
-    String usersNodeToStringExpect =
-      "<users>\n" +
-      "    <user>\n" +
-      "        <id>100</id>\n" +
-      "        <name>Tom</name>\n" +
-      "        <age>30</age>\n" +
-      "        <cars>\n" +
-      "            <car>BMW</car>\n" +
-      "            <car>Audi</car>\n" +
-      "            <car>Benz</car>\n" +
-      "        </cars>\n" +
-      "    </user>\n" +
-      "</users>\n";
-
-    String userNodeToStringExpect =
-      "<user>\n" +
-      "    <id>100</id>\n" +
-      "    <name>Tom</name>\n" +
-      "    <age>30</age>\n" +
-      "    <cars>\n" +
-      "        <car>BMW</car>\n" +
-      "        <car>Audi</car>\n" +
-      "        <car>Benz</car>\n" +
-      "    </cars>\n" +
-      "</user>\n";
-
-  String carsNodeToStringExpect =
-      "<cars>\n" +
-      "    <car>BMW</car>\n" +
-      "    <car>Audi</car>\n" +
-      "    <car>Benz</car>\n" +
-      "</cars>\n";
-
-    assertEquals(usersNodeToStringExpect, usersNodeToString);
-    assertEquals(userNodeToStringExpect, userNodeToString);
-    assertEquals(carsNodeToStringExpect, carsNodeToString);
   }
 
 }

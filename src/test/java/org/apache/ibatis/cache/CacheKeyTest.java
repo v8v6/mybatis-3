@@ -1,11 +1,11 @@
-/**
- *    Copyright 2009-2020 the original author or authors.
+/*
+ *    Copyright 2009-2023 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
  *    You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  *    Unless required by applicable law or agreed to in writing, software
  *    distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +15,9 @@
  */
 package org.apache.ibatis.cache;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -24,7 +26,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Date;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class CacheKeyTest {
@@ -80,18 +81,38 @@ class CacheKeyTest {
 
   @Test
   void shouldTestCacheKeysWithBinaryArrays() {
-    byte[] array1 = new byte[] { 1 };
-    byte[] array2 = new byte[] { 1 };
+    byte[] array1 = { 1 };
+    byte[] array2 = { 1 };
     CacheKey key1 = new CacheKey(new Object[] { array1 });
     CacheKey key2 = new CacheKey(new Object[] { array2 });
     assertEquals(key1, key2);
   }
 
   @Test
+  void throwExceptionWhenTryingToUpdateNullCacheKey() {
+    CacheKey cacheKey = CacheKey.NULL_CACHE_KEY;
+    assertThrows(CacheException.class, () -> cacheKey.update("null"));
+  }
+
+  @Test
+  void throwExceptionWhenTryingToUpdateAllNullCacheKey() {
+    CacheKey cacheKey = CacheKey.NULL_CACHE_KEY;
+    assertThrows(CacheException.class, () -> cacheKey.updateAll(new Object[] { "null", "null" }));
+  }
+
+  @Test
+  void shouldDemonstrateClonedNullCacheKeysAreEqual() throws Exception {
+    CacheKey cacheKey = CacheKey.NULL_CACHE_KEY;
+    CacheKey clonedCacheKey = cacheKey.clone();
+    assertEquals(cacheKey, clonedCacheKey);
+    assertEquals(cacheKey.hashCode(), clonedCacheKey.hashCode());
+  }
+
+  @Test
   void serializationExceptionTest() {
     CacheKey cacheKey = new CacheKey();
     cacheKey.update(new Object());
-    Assertions.assertThrows(NotSerializableException.class, () -> {
+    assertThrows(NotSerializableException.class, () -> {
       serialize(cacheKey);
     });
   }
@@ -100,15 +121,15 @@ class CacheKeyTest {
   void serializationTest() throws Exception {
     CacheKey cacheKey = new CacheKey();
     cacheKey.update("serializable");
-    Assertions.assertEquals(cacheKey, serialize(cacheKey));
+    assertEquals(cacheKey, serialize(cacheKey));
   }
 
   private static <T> T serialize(T object) throws Exception {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      new ObjectOutputStream(baos).writeObject(object);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    new ObjectOutputStream(baos).writeObject(object);
 
-      ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-      return (T) new ObjectInputStream(bais).readObject();
+    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+    return (T) new ObjectInputStream(bais).readObject();
   }
 
 }

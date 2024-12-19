@@ -1,11 +1,11 @@
-/**
- *    Copyright 2009-2020 the original author or authors.
+/*
+ *    Copyright 2009-2023 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
  *    You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *       https://www.apache.org/licenses/LICENSE-2.0
  *
  *    Unless required by applicable law or agreed to in writing, software
  *    distributed under the License is distributed on an "AS IS" BASIS,
@@ -54,7 +54,7 @@ import org.apache.ibatis.session.Configuration;
  */
 public final class TypeHandlerRegistry {
 
-  private final Map<JdbcType, TypeHandler<?>>  jdbcTypeHandlerMap = new EnumMap<>(JdbcType.class);
+  private final Map<JdbcType, TypeHandler<?>> jdbcTypeHandlerMap = new EnumMap<>(JdbcType.class);
   private final Map<Type, Map<JdbcType, TypeHandler<?>>> typeHandlerMap = new ConcurrentHashMap<>();
   private final TypeHandler<Object> unknownTypeHandler;
   private final Map<Class<?>, TypeHandler<?>> allTypeHandlersMap = new HashMap<>();
@@ -73,7 +73,9 @@ public final class TypeHandlerRegistry {
   /**
    * The constructor that pass the MyBatis configuration.
    *
-   * @param configuration a MyBatis configuration
+   * @param configuration
+   *          a MyBatis configuration
+   *
    * @since 3.5.4
    */
   public TypeHandlerRegistry(Configuration configuration) {
@@ -180,9 +182,12 @@ public final class TypeHandlerRegistry {
   }
 
   /**
-   * Set a default {@link TypeHandler} class for {@link Enum}.
-   * A default {@link TypeHandler} is {@link org.apache.ibatis.type.EnumTypeHandler}.
-   * @param typeHandler a type handler class for {@link Enum}
+   * Set a default {@link TypeHandler} class for {@link Enum}. A default {@link TypeHandler} is
+   * {@link org.apache.ibatis.type.EnumTypeHandler}.
+   *
+   * @param typeHandler
+   *          a type handler class for {@link Enum}
+   *
    * @since 3.4.5
    */
   public void setDefaultEnumTypeHandler(Class<? extends TypeHandler> typeHandler) {
@@ -252,17 +257,19 @@ public final class TypeHandlerRegistry {
 
   private Map<JdbcType, TypeHandler<?>> getJdbcHandlerMap(Type type) {
     Map<JdbcType, TypeHandler<?>> jdbcHandlerMap = typeHandlerMap.get(type);
-    if (NULL_TYPE_HANDLER_MAP.equals(jdbcHandlerMap)) {
-      return null;
+    if (jdbcHandlerMap != null) {
+      return NULL_TYPE_HANDLER_MAP.equals(jdbcHandlerMap) ? null : jdbcHandlerMap;
     }
-    if (jdbcHandlerMap == null && type instanceof Class) {
+    if (type instanceof Class) {
       Class<?> clazz = (Class<?>) type;
       if (Enum.class.isAssignableFrom(clazz)) {
-        Class<?> enumClass = clazz.isAnonymousClass() ? clazz.getSuperclass() : clazz;
-        jdbcHandlerMap = getJdbcHandlerMapForEnumInterfaces(enumClass, enumClass);
+        if (clazz.isAnonymousClass()) {
+          return getJdbcHandlerMap(clazz.getSuperclass());
+        }
+        jdbcHandlerMap = getJdbcHandlerMapForEnumInterfaces(clazz, clazz);
         if (jdbcHandlerMap == null) {
-          register(enumClass, getInstance(enumClass, defaultEnumTypeHandler));
-          return typeHandlerMap.get(enumClass);
+          register(clazz, getInstance(clazz, defaultEnumTypeHandler));
+          return typeHandlerMap.get(clazz);
         }
       } else {
         jdbcHandlerMap = getJdbcHandlerMapForSuperclass(clazz);
@@ -279,7 +286,7 @@ public final class TypeHandlerRegistry {
         jdbcHandlerMap = getJdbcHandlerMapForEnumInterfaces(iface, enumClazz);
       }
       if (jdbcHandlerMap != null) {
-        // Found a type handler regsiterd to a super interface
+        // Found a type handler registered to a super interface
         HashMap<JdbcType, TypeHandler<?>> newMap = new HashMap<>();
         for (Entry<JdbcType, TypeHandler<?>> entry : jdbcHandlerMap.entrySet()) {
           // Create a type handler instance with enum type as a constructor arg
@@ -292,16 +299,15 @@ public final class TypeHandlerRegistry {
   }
 
   private Map<JdbcType, TypeHandler<?>> getJdbcHandlerMapForSuperclass(Class<?> clazz) {
-    Class<?> superclass =  clazz.getSuperclass();
+    Class<?> superclass = clazz.getSuperclass();
     if (superclass == null || Object.class.equals(superclass)) {
       return null;
     }
     Map<JdbcType, TypeHandler<?>> jdbcHandlerMap = typeHandlerMap.get(superclass);
     if (jdbcHandlerMap != null) {
       return jdbcHandlerMap;
-    } else {
-      return getJdbcHandlerMapForSuperclass(superclass);
     }
+    return getJdbcHandlerMapForSuperclass(superclass);
   }
 
   private TypeHandler<?> pickSoleHandler(Map<JdbcType, TypeHandler<?>> jdbcHandlerMap) {
@@ -465,7 +471,7 @@ public final class TypeHandlerRegistry {
     resolverUtil.find(new ResolverUtil.IsA(TypeHandler.class), packageName);
     Set<Class<? extends Class<?>>> handlerSet = resolverUtil.getClasses();
     for (Class<?> type : handlerSet) {
-      //Ignore inner classes and interfaces (including package-info.java) and abstract classes
+      // Ignore inner classes and interfaces (including package-info.java) and abstract classes
       if (!type.isAnonymousClass() && !type.isInterface() && !Modifier.isAbstract(type.getModifiers())) {
         register(type);
       }
@@ -478,6 +484,7 @@ public final class TypeHandlerRegistry {
    * Gets the type handlers.
    *
    * @return the type handlers
+   *
    * @since 3.2.2
    */
   public Collection<TypeHandler<?>> getTypeHandlers() {
